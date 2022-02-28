@@ -50,22 +50,22 @@ function array_list_to_js(es) {
 }
 
 function single_field_value_query(q) {
-   const clause = {};
+   var clause = {};
    clause[q.fieldName.toString()] = to_js(q.value);
-   const query = {};
-   const name = classof(q).statics['NAME'];
+   var query = {};
+   var name = classof(q).statics['NAME'];
    query[name.toString()] = clause;
    return query;
 }
 
 function terms_query(q) {
-   const clause = {};
+   var clause = {};
    clause[q.fieldName.toString()] = to_js(q.values.values);
    return {'terms': clause};
 }
 
 function bool_query(q) {
-   const clauses = {};
+   var clauses = {};
    if (q.filterClauses.size > 0) {
       clauses['filter'] = to_js(q.filterClauses);
    }
@@ -82,10 +82,10 @@ function bool_query(q) {
 }
 
 function range_query(q) {
-   const clause = {};
+   var clause = {};
    clause[q.includeLower ? "gte" : "gt"] = to_js(q.from);
    clause[q.includeUpper ? "lte" : "le"] = to_js(q.to);
-   const query = {};
+   var query = {};
    query[q.fieldName.toString()] = clause;
    return {'range': query};
 }
