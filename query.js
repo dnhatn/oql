@@ -13,7 +13,8 @@ function to_js(o) {
          return o.value;
       case 'java.util.ArrayList':
          return array_list_to_js(o);
-
+      case 'java.util.HashSet':
+         return hash_set_to_js(o);
       /* Lucene and ES types */
       case 'org.apache.lucene.util.BytesRef':
          return String.fromCharCode.apply('utf8', o.bytes);
@@ -35,8 +36,12 @@ function to_js(o) {
          return single_field_value_query(o);
       case 'org.elasticsearch.index.query.TermsQueryBuilder':
          return terms_query(o);
+      case 'org.elasticsearch.index.query.NestedQueryBuilder':
+         return nested_query(o);
+      case 'org.elasticsearch.index.query.IdsQueryBuilder':
+         return ids_query(o);
       default:
-         throw 'unsupported value:' + toHtml(o);
+         return 'unsupported type: ' + toHtml(o);
    }
 }
 
@@ -45,6 +50,17 @@ function array_list_to_js(es) {
    for(var i = 0; i < es.size; i++) {
       var e = es.elementData[i];
       rs.push(to_js(e));
+   }
+   return rs;
+}
+
+function hash_set_to_js(es) {
+   var rs = [];
+   var node = es.map.table;
+   while (node != null && node.key != null) {
+      var k = to_js(node.key);
+      node = node.next;
+      rs.push(k);
    }
    return rs;
 }
@@ -88,6 +104,21 @@ function range_query(q) {
    var query = {};
    query[q.fieldName.toString()] = clause;
    return {'range': query};
+}
+
+function nested_query(o) {
+   return {
+      'nested': {
+         'path' : to_js(o.path),
+         'query': to_js(o.query)
+      }
+   }
+}
+
+function ids_query(o) {
+   return {
+      'ids': to_js(o.ids)
+   }
 }
 
 map(heap.objects(heap.findClass('org.elasticsearch.search.builder.SearchSourceBuilder'), true), function (source) {
