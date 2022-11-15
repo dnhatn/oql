@@ -30,6 +30,7 @@ function to_js(o) {
          return {'exist': {'field': to_js(o.fieldName)}};
 
       /* single field-value queries (i.e., term, match, wildcard) */
+      case 'org.elasticsearch.index.query.MatchPhraseQueryBuilder':
       case 'org.elasticsearch.index.query.MatchQueryBuilder':
       case 'org.elasticsearch.index.query.TermQueryBuilder':
       case 'org.elasticsearch.index.query.WildcardQueryBuilder':
