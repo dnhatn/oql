@@ -203,6 +203,5 @@ map(heap.objects(heap.findClass('org.elasticsearch.search.builder.SearchSourceBu
         post_filter: to_js(source.postQueryBuilder),
         suggest: to_js(source.suggestBuilder)
     };
-    //the stringify does not quite indent like it should?!
     return toHtml(source) + ":\n" + JSON.stringify(request, null, 4);
 });
