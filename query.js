@@ -4,8 +4,12 @@ function to_js(o) {
    if (o == null) {
       return null;
    }
+   /* primitive types */
+   if (classof(o) == null) {
+      return toHtml(o);
+   }
    switch(classof(o).name) {
-      /* primitive types */
+      /* base classes */
       case 'java.lang.String':
          return o.toString();
       case 'java.lang.Integer':
@@ -15,10 +19,18 @@ function to_js(o) {
          return array_list_to_js(o);
       case 'java.util.HashSet':
          return hash_set_to_js(o);
+      case 'java.util.HashMap':
+         return hash_map_to_js(o); 
       /* Lucene and ES types */
       case 'org.apache.lucene.util.BytesRef':
          return String.fromCharCode.apply('utf8', o.bytes);
-
+      case 'org.elasticsearch.common.bytes.BytesArray':
+         return String.fromCharCode.apply('utf8', o.bytes);
+      /* suggestions */
+      case 'org.elasticsearch.search.suggest.SuggestBuilder':
+          return suggest_builder(o);
+      case 'org.elasticsearch.search.suggest.completion.CompletionSuggestionBuilder':
+          return completion_suggestion_builder(o);          
       /* queries */
       case 'org.elasticsearch.index.query.BoolQueryBuilder':
          return bool_query(o);
@@ -26,6 +38,8 @@ function to_js(o) {
          return range_query(o);
       case 'org.elasticsearch.index.query.MatchAllQueryBuilder':
          return {'match_all': {}};
+      case 'org.elasticsearch.index.query.MatchNoneQueryBuilder':
+         return {'match_none': {}};         
       case 'org.elasticsearch.index.query.ExistsQueryBuilder':
          return {'exist': {'field': to_js(o.fieldName)}};
 
@@ -64,6 +78,19 @@ function hash_set_to_js(es) {
       rs.push(k);
    }
    return rs;
+}
+
+function hash_map_to_js(map) {
+   return hash_map_to_js(map, {});
+}
+
+function hash_map_to_js(map, rs) {
+  for (var i in map.table) {
+    var entry = map.table[i];
+    if (entry != null) {
+      rs[to_js(entry.key)] = to_js(entry.value);
+    }
+  }
 }
 
 function single_field_value_query(q) {
@@ -122,6 +149,59 @@ function ids_query(o) {
    }
 }
 
+function suggest_builder(o) {
+    var suggest = {};
+    suggest["text"] = to_js(o.globalText);
+    hash_map_to_js(o.suggestions, suggest);    
+    return suggest;
+}
+
+function completion_suggestion_builder(o) {
+    return {
+      field: to_js(o.field),
+      text: to_js(o.text),  
+      prefix: to_js(o.prefix),
+      regex: to_js(o.regex), 
+      analyzer: to_js(o.analyzer),
+      size: to_js(o.size),
+      shard_size: to_js(o.shardSize),
+      //fields that are specific to completion suggester
+      fuzzy: fuzzy_options(o.fuzzyOptions),
+      regex: regex_options(o.regexOptions),
+      skip_duplicates: to_js(o.skipDuplicates),
+      contexts: to_js(o.contextBytes)
+    };
+}
+
+function fuzzy_options(fuzzy) {
+   if (fuzzy == null) {
+       return null;    
+   }
+   return { 
+       edit_distance: to_js(fuzzy.editDistance),
+       transpositions: to_js(fuzzy.transpositions),
+       fuzzy_min_length: to_js(fuzzy.fuzzyMinLength),
+       fuzzy_prefix_length: to_js(fuzzy.fuzzyPrefixLength),
+       unicode_aware: to_js(fuzzy.unicodeAware),
+       max_determinized_states: to_js(fuzzy.maxDeterminizedStates)
+   };
+}
+
+function regex_options(regex) {
+    if (regex == null) {
+        return null;    
+    }
+    return {
+        flags_value: to_js(regex.flagsValue),
+        max_determinized_states: to_js(regex.maxDeterminizedStates)  
+    };
+}
+
 map(heap.objects(heap.findClass('org.elasticsearch.search.builder.SearchSourceBuilder'), true), function (source) {
-   return toHtml(source) + "\n" + JSON.stringify(to_js(source.queryBuilder));
+    var request = {
+        query: to_js(source.queryBuilder),
+        post_filter: to_js(source.postQueryBuilder),
+        suggest: to_js(source.suggestBuilder)
+    };
+    return toHtml(source) + ":\n" + JSON.stringify(request, null, 4);
 });
