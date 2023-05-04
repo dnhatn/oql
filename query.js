@@ -14,13 +14,17 @@ function to_js(o) {
          return o.toString();
       case 'java.lang.Integer':
       case 'java.lang.Long':
+      case 'java.lang.Float':
+      case 'java.lang.Double':
          return o.value;
       case 'java.util.ArrayList':
          return array_list_to_js(o);
       case 'java.util.HashSet':
          return hash_set_to_js(o);
       case 'java.util.HashMap':
-         return hash_map_to_js(o); 
+         return hash_map_to_js(o);
+      case 'java.util.TreeMap':
+         return tree_map_to_js(o);
       /* Lucene and ES types */
       case 'org.apache.lucene.util.BytesRef':
          return String.fromCharCode.apply('utf8', o.bytes);
@@ -55,6 +59,8 @@ function to_js(o) {
          return nested_query(o);
       case 'org.elasticsearch.index.query.IdsQueryBuilder':
          return ids_query(o);
+      case 'org.elasticsearch.index.query.QueryStringQueryBuilder':
+         return query_string(o);
       default:
          return 'unsupported type: ' + toHtml(o);
    }
@@ -91,6 +97,21 @@ function hash_map_to_js(map, rs) {
       rs[to_js(entry.key)] = to_js(entry.value);
     }
   }
+}
+
+function tree_map_to_js(map) {
+    return tree_map_to_js(map.root, {});
+}
+
+function tree_map_to_js(e, rs) {
+    if (e == null) {
+        return rs
+    }
+    if (e.key != null && e.value != null) {
+        rs[to_js(e.key)] = to_js(e.value);
+    }
+    tree_map_to_js(e.left, rs);
+    tree_map_to_js(e.right, rs)
 }
 
 function single_field_value_query(q) {
@@ -146,6 +167,15 @@ function nested_query(o) {
 function ids_query(o) {
    return {
       'ids': to_js(o.ids)
+   }
+}
+
+function query_string(o) {
+   return {
+        'query_string': {
+            'fields': to_js(o.fieldsAndWeights),
+            'query': to_js(o.queryString)
+        }
    }
 }
 
