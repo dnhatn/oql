@@ -21,6 +21,8 @@ function to_js(o) {
          return array_list_to_js(o);
       case 'java.util.HashSet':
          return hash_set_to_js(o);
+      case 'java.util.LinkedHashSet':
+         return linkedhash_set_to_js(o);
       case 'java.util.HashMap':
          return hash_map_to_js(o);
       case 'java.util.TreeMap':
@@ -34,7 +36,7 @@ function to_js(o) {
       case 'org.elasticsearch.search.suggest.SuggestBuilder':
           return suggest_builder(o);
       case 'org.elasticsearch.search.suggest.completion.CompletionSuggestionBuilder':
-          return completion_suggestion_builder(o);          
+          return completion_suggestion_builder(o);
       /* queries */
       case 'org.elasticsearch.index.query.BoolQueryBuilder':
          return bool_query(o);
@@ -43,10 +45,9 @@ function to_js(o) {
       case 'org.elasticsearch.index.query.MatchAllQueryBuilder':
          return {'match_all': {}};
       case 'org.elasticsearch.index.query.MatchNoneQueryBuilder':
-         return {'match_none': {}};         
+         return {'match_none': {}};
       case 'org.elasticsearch.index.query.ExistsQueryBuilder':
          return {'exist': {'field': to_js(o.fieldName)}};
-
       /* single field-value queries (i.e., term, match, wildcard) */
       case 'org.elasticsearch.index.query.MatchPhraseQueryBuilder':
       case 'org.elasticsearch.index.query.MatchQueryBuilder':
@@ -61,6 +62,17 @@ function to_js(o) {
          return ids_query(o);
       case 'org.elasticsearch.index.query.QueryStringQueryBuilder':
          return query_string(o);
+      case 'org.elasticsearch.search.aggregations.AggregatorFactories$Builder':
+          return aggfactory_Builder(o);
+      case 'org.elasticsearch.search.aggregations.bucket.filter.FiltersAggregationBuilder':
+           //return aggregationBuilder(o);
+           return filters_agg(o);
+      case 'org.elasticsearch.search.aggregations.bucket.filter.FiltersAggregator$KeyedFilter':
+          return keyedfilter(o);
+      case 'org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder':
+      case 'org.elasticsearch.search.aggregations.metrics.PercentilesAggregationBuilder':
+      case 'org.elasticsearch.search.aggregations.metrics.MaxAggregationBuilder':
+          return aggregationBuilder(o);
       default:
          return 'unsupported type: ' + toHtml(o);
    }
@@ -78,6 +90,17 @@ function array_list_to_js(es) {
 function hash_set_to_js(es) {
    var rs = [];
    var node = es.map.table;
+   while (node != null && node.key != null) {
+      var k = to_js(node.key);
+      node = node.next;
+      rs.push(k);
+   }
+   return rs;
+}
+
+function linkedhash_set_to_js(es) {
+   var rs = [];
+   var node = es.map.head;
    while (node != null && node.key != null) {
       var k = to_js(node.key);
       node = node.next;
@@ -182,16 +205,16 @@ function query_string(o) {
 function suggest_builder(o) {
     var suggest = {};
     suggest["text"] = to_js(o.globalText);
-    hash_map_to_js(o.suggestions, suggest);    
+    hash_map_to_js(o.suggestions, suggest);
     return suggest;
 }
 
 function completion_suggestion_builder(o) {
     return {
       field: to_js(o.field),
-      text: to_js(o.text),  
+      text: to_js(o.text),
       prefix: to_js(o.prefix),
-      regex: to_js(o.regex), 
+      regex: to_js(o.regex),
       analyzer: to_js(o.analyzer),
       size: to_js(o.size),
       shard_size: to_js(o.shardSize),
@@ -205,9 +228,9 @@ function completion_suggestion_builder(o) {
 
 function fuzzy_options(fuzzy) {
    if (fuzzy == null) {
-       return null;    
+       return null;
    }
-   return { 
+   return {
        edit_distance: to_js(fuzzy.editDistance),
        transpositions: to_js(fuzzy.transpositions),
        fuzzy_min_length: to_js(fuzzy.fuzzyMinLength),
@@ -219,19 +242,58 @@ function fuzzy_options(fuzzy) {
 
 function regex_options(regex) {
     if (regex == null) {
-        return null;    
+        return null;
     }
     return {
         flags_value: to_js(regex.flagsValue),
-        max_determinized_states: to_js(regex.maxDeterminizedStates)  
+        max_determinized_states: to_js(regex.maxDeterminizedStates)
     };
 }
+
+function aggfactory_Builder(builder) {
+    var rs = [];
+    var agg = to_js(builder.aggregationBuilders);
+    if (agg != null) {
+      rs.push(agg);
+    }
+    var pipeline = to_js(builder.pipelineAggregationBuilders);
+    if (pipeline != null) {
+      rs.push(pipeline);
+    }
+    return rs;
+}
+
+function aggregationBuilder(agg) {
+    var out = {};
+    out[agg.name] = { "type" : toHtml(agg)};
+    if (agg.factoriesBuilder != null) {
+      out["aggs"] = to_js(agg.factoriesBuilder);
+    }
+    return out;
+}
+
+function filters_agg(agg) {
+    var out = {};
+    out[agg.name] = to_js(agg.filters);
+    if (agg.factoriesBuilder != null) {
+      out["aggs"] = to_js(agg.factoriesBuilder);
+    }
+    return out;
+}
+
+function keyedfilter(kf) {
+   var out = {};
+   out[kf.key] = to_js(kf.filter);
+   return out;
+}
+
 
 map(heap.objects(heap.findClass('org.elasticsearch.search.builder.SearchSourceBuilder'), true), function (source) {
     var request = {
         query: to_js(source.queryBuilder),
         post_filter: to_js(source.postQueryBuilder),
-        suggest: to_js(source.suggestBuilder)
+        suggest: to_js(source.suggestBuilder),
+        aggs : to_js(source.aggregations)
     };
     return toHtml(source) + ":\n" + JSON.stringify(request, null, 4);
 });
