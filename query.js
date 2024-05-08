@@ -54,6 +54,7 @@ function to_js(o) {
       case 'org.elasticsearch.index.query.MatchPhraseQueryBuilder':
       case 'org.elasticsearch.index.query.MatchQueryBuilder':
       case 'org.elasticsearch.index.query.TermQueryBuilder':
+      case 'org.elasticsearch.index.query.PrefixQueryBuilder':   
       case 'org.elasticsearch.index.query.WildcardQueryBuilder':
          return single_field_value_query(o);
       case 'org.elasticsearch.index.query.TermsQueryBuilder':
