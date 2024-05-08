@@ -32,6 +32,8 @@ function to_js(o) {
          return String.fromCharCode.apply('utf8', o.bytes);
       case 'org.elasticsearch.common.bytes.BytesArray':
          return String.fromCharCode.apply('utf8', o.bytes);
+      case 'org.elasticsearch.search.builder.SubSearchSourceBuilder':
+         return to_js(o.queryBuilder);
       /* suggestions */
       case 'org.elasticsearch.search.suggest.SuggestBuilder':
           return suggest_builder(o);
@@ -290,7 +292,7 @@ function keyedfilter(kf) {
 
 map(heap.objects(heap.findClass('org.elasticsearch.search.builder.SearchSourceBuilder'), true), function (source) {
     var request = {
-        query: to_js(source.queryBuilder),
+        query: to_js(source.subSearchSourceBuilders),
         post_filter: to_js(source.postQueryBuilder),
         suggest: to_js(source.suggestBuilder),
         aggs : to_js(source.aggregations)
