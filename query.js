@@ -37,6 +37,8 @@ function to_js(o) {
       /* suggestions */
       case 'org.elasticsearch.search.suggest.SuggestBuilder':
           return suggest_builder(o);
+      case 'org.elasticsearch.index.query.ConstantScoreQueryBuilder':
+          return constant_score_query(o);
       case 'org.elasticsearch.search.suggest.completion.CompletionSuggestionBuilder':
           return completion_suggestion_builder(o);
       /* queries */
@@ -61,6 +63,8 @@ function to_js(o) {
          return terms_query(o);
       case 'org.elasticsearch.index.query.NestedQueryBuilder':
          return nested_query(o);
+      case 'org.elasticsearch.join.query.HasParentQueryBuilder':
+         return has_parent(o);
       case 'org.elasticsearch.index.query.IdsQueryBuilder':
          return ids_query(o);
       case 'org.elasticsearch.index.query.QueryStringQueryBuilder':
@@ -151,8 +155,15 @@ function single_field_value_query(q) {
 
 function terms_query(q) {
    var clause = {};
-   clause[q.fieldName.toString()] = to_js(q.values.values);
-   return {'terms': clause};
+   clause[q.fieldName.toString()] = {'valuesRef': to_js(q.values.valueRef), 'values': to_js(q.values)};
+   return {'terms': clause}; 
+}
+
+function has_parent(q) {
+   sub_query = to_js(q.query);
+   pt = to_js(q.parentType);
+
+   return {'has_parent': { 'parent_type' : pt, 'query': sub_query } };
 }
 
 function bool_query(q) {
@@ -228,7 +239,9 @@ function completion_suggestion_builder(o) {
       contexts: to_js(o.contextBytes)
     };
 }
-
+function constant_score_query(o) {
+  return to_js(o.filterBuilder);
+}
 function fuzzy_options(fuzzy) {
    if (fuzzy == null) {
        return null;
