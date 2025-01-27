@@ -1,5 +1,7 @@
 /* find all queries specified in SearchSourceBuilder in the heap dump */
 
+
+
 function to_js(o) {
    if (o == null) {
       return null;
@@ -27,10 +29,33 @@ function to_js(o) {
          return hash_map_to_js(o);
       case 'java.util.TreeMap':
          return tree_map_to_js(o);
+      case 'org.elasticsearch.common.unit.Fuzziness':
+         return {
+            'fuzziness': to_js(o.fuzziness),
+            'low': to_js(o.lowDistance),
+            'high': to_js(o.highDistance),
+         }
       /* Lucene and ES types */
+      case 'org.elasticsearch.index.query.functionscore.FunctionScoreQueryBuilder$FilterFunctionBuilder':
+         return {
+            'filter': to_js(o.filter),
+            'scoreFunction': to_js(o.scoreFunction),
+         }
+      case 'org.elasticsearch.common.lucene.search.function.FunctionScoreQuery$ScoreMode':
+         return o.toString();
+      case 'org.elasticsearch.index.query.TermsQueryBuilder$BinaryValues':
+         return term_binary_values(o);
+      case 'org.elasticsearch.index.query.TermsQueryBuilder$ListValues':
+         return to_js(o.values); 
       case 'org.apache.lucene.util.BytesRef':
+         if (o == null) {
+            return "_null_";
+         }
          return String.fromCharCode.apply('utf8', o.bytes);
       case 'org.elasticsearch.common.bytes.BytesArray':
+         if (o == null) {
+            return "_null_";
+         }
          return String.fromCharCode.apply('utf8', o.bytes);
       case 'org.elasticsearch.search.builder.SubSearchSourceBuilder':
          return to_js(o.queryBuilder);
@@ -59,6 +84,8 @@ function to_js(o) {
       case 'org.elasticsearch.index.query.PrefixQueryBuilder':   
       case 'org.elasticsearch.index.query.WildcardQueryBuilder':
          return single_field_value_query(o);
+      case 'org.elasticsearch.index.query.MultiMatchQueryBuilder':
+         return multi_match_query(o);
       case 'org.elasticsearch.index.query.TermsQueryBuilder':
          return terms_query(o);
       case 'org.elasticsearch.index.query.NestedQueryBuilder':
@@ -69,6 +96,8 @@ function to_js(o) {
          return ids_query(o);
       case 'org.elasticsearch.index.query.QueryStringQueryBuilder':
          return query_string(o);
+      case 'org.elasticsearch.index.query.functionscore.FunctionScoreQueryBuilder':
+         return function_score_query(o);
       case 'org.elasticsearch.search.aggregations.AggregatorFactories$Builder':
           return aggfactory_Builder(o);
       case 'org.elasticsearch.search.aggregations.bucket.filter.FiltersAggregationBuilder':
@@ -83,6 +112,162 @@ function to_js(o) {
       default:
          return 'unsupported type: ' + toHtml(o);
    }
+}
+
+function function_score_query(q) {
+
+   func_list = []
+   for (var i = 0; i < q.filterFunctionBuilders.length; i++) {
+      func_list.push(to_js(q.filterFunctionBuilders[i]));
+   }
+   return {
+      'weight': to_js(q.weight),
+      'query': to_js(q.query),
+      'filter': to_js(q.filter),
+      'functions': to_js(func_list),
+      'score_mode': to_js(q.scoreMode),
+      'boost_mode': to_js(q.boostMode),
+      'max_boost': to_js(q.maxBoost),
+      'min_score': to_js(q.minScore),
+   }
+
+}
+
+function multi_match_query(q) {
+   return {
+      "prefix_length": to_js(q.prefixLength),
+      "max_expansions": to_js(q.maxExpansions),
+      "fields": to_js(q.fields),
+      "slop": to_js(q.slop),
+      "fuzziness": to_js(q.fuzziness),
+      "value": to_js(q.value),
+      "analyzer": to_js(q.analyzer),
+      "fields_boost": to_js(q.fieldsBoosts),
+      "query": to_js(q.query),
+      "fuzzy_transpositions": to_js(q.fuzzyTranspositions),
+      "auto_generate_synonyms_phrase_query": to_js(q.autoGenerateSynonymsPhraseQuery),
+   }
+}
+
+function read_number(bytes) {
+//((readByte() & 0xFF) << 24) | ((readByte() & 0xFF) << 16) | ((readByte() & 0xFF) << 8) | (readByte() & 0xFF)
+  return (bytes[0] & 0xFF) << 24 | (bytes[1] & 0xFF )<< 16 | (bytes[2] & 0xFF) << 8 | (bytes[3] & 0xFF);
+}
+
+function read_char_array(bytes) {
+    var pos = 0;
+    var b = bytes[pos];
+    var i = b & 0x7F;
+    if ((b & 0x80) == 0) {
+        var sliced = [];
+        for (var j = pos + 1; j < bytes.length; j++) {
+            sliced.push(bytes[j]);
+        }
+        return String.fromCharCode.apply('utf8', sliced)
+    }
+    b = bytes[++pos];
+    i |= (b & 0x7F) << 7;
+    if ((b & 0x80) == 0) {
+        var sliced = [];
+        for (var j = pos + 1; j < bytes.length; j++) {
+            sliced.push(bytes[j]);
+        }
+        return String.fromCharCode.apply('utf8', sliced)
+    }
+    b = bytes[++pos];
+    i |= (b & 0x7F) << 14;
+    if ((b & 0x80) == 0) {
+        var sliced = [];
+        for (var j = pos + 1; j < bytes.length; j++) {
+            sliced.push(bytes[j]);
+        }
+        return String.fromCharCode.apply('utf8', sliced)
+    }
+    b = bytes[++pos];
+    i |= (b & 0x7F) << 21;
+    if ((b & 0x80) == 0) {
+        var sliced = [];
+        for (var j = pos + 1; j < bytes.length; j++) {
+            sliced.push(bytes[j]);
+        }
+        return String.fromCharCode.apply('utf8', sliced)
+    }
+    b = bytes[++pos];
+    var sliced = [];
+    for (var j = pos + 1; j < bytes.length; j++) {
+        sliced.push(bytes[j]);
+    }
+    return String.fromCharCode.apply('utf8', sliced)
+}
+
+function term_binary_values(o) {
+    var pos = 1;
+    if (o.valueRef == null) {
+      return "_null_";
+    }
+    b = o.valueRef.bytes[pos];
+    var i = b & 0x7F;
+    var len = i;
+    if ((b & 0x80) == 0) {
+        var sliced = [];
+        for (var j = pos + 2; j < o.valueRef.bytes.length; j++) {
+            sliced.push(o.valueRef.bytes[j]);
+        }
+        var kind = o.valueRef.bytes[pos + 1];
+        if (kind == 1) {
+            return read_number(sliced);
+        }
+        return read_char_array(sliced);
+    }
+    b = o.valueRef.bytes[++pos];
+    i |= (b & 0x7F) << 7;
+    if ((b & 0x80) == 0) {
+        var sliced = [];
+        for (var j = pos + 2; j < o.valueRef.bytes.length; j++) {
+            sliced.push(o.valueRef.bytes[j]);
+        }
+        var kind = o.valueRef.bytes[pos + 1];
+        if (kind == 1) {
+            return read_number(sliced);
+        }
+        return read_char_array(sliced);    
+    }
+    b = o.valueRef.bytes[++pos];
+    i |= (b & 0x7F) << 14;
+    if ((b & 0x80) == 0) {
+        var sliced = [];
+        for (var j = pos + 2; j < o.valueRef.bytes.length; j++) {
+            sliced.push(o.valueRef.bytes[j]);
+        }
+        var kind = o.valueRef.bytes[pos + 1];
+        if (kind == 1) {
+            return read_number(sliced);
+        }
+        return read_char_array(sliced);  
+     }
+    b = o.valueRef.bytes[++pos];
+    i |= (b & 0x7F) << 21;
+    if ((b & 0x80) == 0) {
+        var sliced = [];
+        for (var j = pos + 2; j < o.valueRef.bytes.length; j++) {
+            sliced.push(o.valueRef.bytes[j]);
+        }
+        var kind = o.valueRef.bytes[pos + 1];
+        if (kind == 1) {
+            return read_number(sliced);
+        }
+        return read_char_array(sliced);    
+    }
+    b = o.valueRef.bytes[++pos];
+    var sliced = [];
+    for (var j = pos + 2; j < o.valueRef.bytes.length; j++) {
+        sliced.push(o.valueRef.bytes[j]);
+    }
+    var kind = o.valueRef.bytes[pos + 1];
+    if (kind == 1) {
+        return read_number(sliced);
+    }
+    return read_char_array(sliced);
 }
 
 function array_list_to_js(es) {
@@ -155,7 +340,7 @@ function single_field_value_query(q) {
 
 function terms_query(q) {
    var clause = {};
-   clause[q.fieldName.toString()] = {'valuesRef': to_js(q.values.valueRef), 'values': to_js(q.values)};
+   clause[q.fieldName.toString()] = {'values': to_js(q.values)};
    return {'terms': clause}; 
 }
 
