@@ -109,6 +109,8 @@ function to_js(o) {
       case 'org.elasticsearch.search.aggregations.metrics.PercentilesAggregationBuilder':
       case 'org.elasticsearch.search.aggregations.metrics.MaxAggregationBuilder':
           return aggregationBuilder(o);
+      case 'org.elasticsearch.search.aggregations.bucket.histogram.HistogramAggregationBuilder':
+          return histogramBuilder(o);
       default:
          return 'unsupported type: ' + toHtml(o);
    }
@@ -467,6 +469,24 @@ function aggfactory_Builder(builder) {
 function aggregationBuilder(agg) {
     var out = {};
     out[agg.name] = { "type" : toHtml(agg)};
+    if (agg.field != null) {
+      out["field"] = to_js(agg.field);
+    }
+    if (agg.factoriesBuilder != null) {
+      out["aggs"] = to_js(agg.factoriesBuilder);
+    }
+    return out;
+}
+
+function histogramBuilder(agg) {
+    var out = {};
+    out[agg.name] = { "type" : toHtml(agg)};
+    if (agg.field != null) {
+      out["field"] = to_js(agg.field);
+    }
+    if (agg.interval != null) {
+      out["interval"] = to_js(agg.interval);
+    }
     if (agg.factoriesBuilder != null) {
       out["aggs"] = to_js(agg.factoriesBuilder);
     }
@@ -496,5 +516,5 @@ map(heap.objects(heap.findClass('org.elasticsearch.search.builder.SearchSourceBu
         suggest: to_js(source.suggestBuilder),
         aggs : to_js(source.aggregations)
     };
-    return toHtml(source) + ":\n" + JSON.stringify(request, null, 4);
+    return toHtml(source) + ":\n<pre>" + JSON.stringify(request, null, 2) + "</pre>";
 });
