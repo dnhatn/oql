@@ -109,6 +109,10 @@ function to_js(o) {
       case 'org.elasticsearch.search.aggregations.metrics.PercentilesAggregationBuilder':
       case 'org.elasticsearch.search.aggregations.metrics.MaxAggregationBuilder':
           return aggregationBuilder(o);
+      case 'org.elasticsearch.search.aggregations.bucket.composite.CompositeAggregationBuilder':
+          return compositeBuilder(o);
+      case 'org.elasticsearch.search.aggregations.metrics.TopHitsAggregationBuilder':
+          return topHitsBuilder(o);
       case 'org.elasticsearch.search.aggregations.bucket.histogram.HistogramAggregationBuilder':
           return histogramBuilder(o);
       default:
@@ -478,6 +482,18 @@ function aggregationBuilder(agg) {
     return out;
 }
 
+function aggregationBuilder(agg) {
+    var out = {};
+    out[agg.name] = { "type" : toHtml(agg)};
+    if (agg.field != null) {
+      out["field"] = to_js(agg.field);
+    }
+    if (agg.factoriesBuilder != null) {
+      out["aggs"] = to_js(agg.factoriesBuilder);
+    }
+    return out;
+}
+
 function histogramBuilder(agg) {
     var out = {};
     out[agg.name] = { "type" : toHtml(agg)};
@@ -491,6 +507,60 @@ function histogramBuilder(agg) {
       out["aggs"] = to_js(agg.factoriesBuilder);
     }
     return out;
+}
+
+function topHitsBuilder(agg) {
+    var out = {};
+    out[agg.name] = { "type" : toHtml(agg)};
+    if (agg.field != null) {
+      out["field"] = to_js(agg.field);
+    }
+    if (agg.size != null) {
+      out["size"] = to_js(agg.size);
+    }
+   if (agg.sorts != null) {
+      var sorts = out["sorts"] = [];
+      for (var i = 0; i < (agg.sorts.elementData || []).length; i++) {
+         var sort = agg.sorts.elementData[i];
+         if (sort != null) {
+            var sortOut = {};
+            sorts.push(sortOut);
+            if (sort.fieldName != null) {
+               sortOut["field"] = to_js(sort.fieldName);
+            }
+            if (sort.order != null) {
+               sortOut["order"] = to_js(sort.order.name);
+            }
+         }
+      }
+   }
+    return out;
+}
+
+function compositeBuilder(agg) {
+   var out = aggregationBuilder(agg);
+   if (agg.size != null) {
+      out["size"] = to_js(agg.size);
+   }
+   var sources = out["sources"] = [];
+   if (agg.sources != null) {
+      for (var i = 0; i < (agg.sources.elementData || []).length; i++) {
+         var source = agg.sources.elementData[i];
+         if (source != null) {
+            var sourceOut = {};
+            sources.push(sourceOut);
+            switch (classof(source).name) {
+               case "org.elasticsearch.search.aggregations.bucket.composite.TermsValuesSourceBuilder":
+                  sourceOut["field"] = to_js(source.field);
+                  break;
+               default:
+                  sourceOut["_"] = to_js("unknown source type");
+                  break;
+            }
+         }
+      }
+   }
+   return out;
 }
 
 function filters_agg(agg) {
