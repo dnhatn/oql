@@ -106,6 +106,7 @@ function to_js(o) {
       case 'org.elasticsearch.search.aggregations.bucket.filter.FiltersAggregator$KeyedFilter':
           return keyedfilter(o);
       case 'org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder':
+          return termsAggregationBuilder(o);
       case 'org.elasticsearch.search.aggregations.metrics.PercentilesAggregationBuilder':
       case 'org.elasticsearch.search.aggregations.metrics.MaxAggregationBuilder':
           return aggregationBuilder(o);
@@ -470,16 +471,21 @@ function aggfactory_Builder(builder) {
     return rs;
 }
 
-function aggregationBuilder(agg) {
-    var out = {};
-    out[agg.name] = { "type" : toHtml(agg)};
-    if (agg.field != null) {
-      out["field"] = to_js(agg.field);
-    }
-    if (agg.factoriesBuilder != null) {
-      out["aggs"] = to_js(agg.factoriesBuilder);
-    }
-    return out;
+function termsAggregationBuilder(agg) {
+   var out = aggregationBuilder(agg);
+   if (agg.bucketCountThresholds != null) {
+      out["bucket_threshold"] = bucketCountThresholdsBuilder(agg.bucketCountThresholds);
+   }
+   return out;
+}
+
+function bucketCountThresholdsBuilder(agg) {
+   var out = {};
+   out["minDocCount"] = to_js(agg.minDocCount);
+   out["shardMinDocCount"] = to_js(agg.shardMinDocCount);
+   out["requiredSize"] = to_js(agg.requiredSize);
+   out["shardSize"] = to_js(agg.shardSize);
+   return out;
 }
 
 function aggregationBuilder(agg) {
