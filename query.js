@@ -19,6 +19,12 @@ function to_js(o) {
       case 'java.lang.Float':
       case 'java.lang.Double':
          return o.value;
+      case 'java.lang.String[]':
+         var rs = [];
+         for (var i = 0; i < o.length; i++) {
+            rs.push(to_js(o[i]));
+         }
+         return rs;
       case 'java.util.ArrayList':
          return array_list_to_js(o);
       case 'java.util.HashSet':
@@ -116,8 +122,17 @@ function to_js(o) {
           return topHitsBuilder(o);
       case 'org.elasticsearch.search.aggregations.bucket.histogram.HistogramAggregationBuilder':
           return histogramBuilder(o);
+      case 'org.elasticsearch.search.fetch.subphase.FieldAndFormat':
+         return fieldAndFormat(o);
       default:
          return 'unsupported type: ' + toHtml(o);
+   }
+}
+
+function fieldAndFormat(o) {
+   return {
+      'field': to_js(o.field),
+      'format': to_js(o.format),
    }
 }
 
@@ -523,6 +538,24 @@ function topHitsBuilder(agg) {
     }
     if (agg.size != null) {
       out["size"] = to_js(agg.size);
+    }
+    if (agg.fetchSourceContext != null) {
+      out["_source"] = {
+         "includes": to_js(agg.fetchSourceContext.includes),
+         "excludes": to_js(agg.fetchSourceContext.excludes)
+      };
+    }
+    if (agg.fields != null) {
+      out["fields"] = to_js(agg.fields);
+    }
+    if (agg.docValueFields != null) {
+      out["docvalue_fields"] = to_js(agg.docValueFields);
+    }
+    if (agg.storedFieldsContext != null) {
+      out["stored_fields"] = to_js(agg.storedFieldsContext.fieldNames);
+    }
+    if (agg.scriptFields != null) {
+      out["script_fields"] = to_js(agg.scriptFields);
     }
    if (agg.sorts != null) {
       var sorts = out["sorts"] = [];
