@@ -18,6 +18,7 @@ function to_js(o) {
       case 'java.lang.Long':
       case 'java.lang.Float':
       case 'java.lang.Double':
+      case 'java.lang.Boolean':
          return o.value;
       case 'java.lang.String[]':
          var rs = [];
@@ -116,6 +117,7 @@ function to_js(o) {
           return termsAggregationBuilder(o);
       case 'org.elasticsearch.search.aggregations.metrics.PercentilesAggregationBuilder':
       case 'org.elasticsearch.search.aggregations.metrics.MaxAggregationBuilder':
+      case 'org.elasticsearch.search.aggregations.metrics.SumAggregationBuilder':
           return aggregationBuilder(o);
       case 'org.elasticsearch.search.aggregations.bucket.composite.CompositeAggregationBuilder':
           return compositeBuilder(o);
