@@ -106,8 +106,9 @@ function to_js(o) {
          return function_score_query(o);
       case 'org.elasticsearch.search.aggregations.AggregatorFactories$Builder':
           return aggfactory_Builder(o);
+      case 'org.elasticsearch.search.aggregations.bucket.filter.FilterAggregationBuilder':
+           return filter_agg(o);
       case 'org.elasticsearch.search.aggregations.bucket.filter.FiltersAggregationBuilder':
-           //return aggregationBuilder(o);
            return filters_agg(o);
       case 'org.elasticsearch.search.aggregations.bucket.filter.FiltersAggregator$KeyedFilter':
           return keyedfilter(o);
@@ -124,6 +125,8 @@ function to_js(o) {
           return histogramBuilder(o);
       case 'org.elasticsearch.search.fetch.subphase.FieldAndFormat':
          return fieldAndFormat(o);
+      case 'org.elasticsearch.index.query.InterceptedQueryBuilderWrapper':
+         return to_js(o.queryBuilder);
       default:
          return 'unsupported type: ' + toHtml(o);
    }
@@ -600,6 +603,15 @@ function compositeBuilder(agg) {
       }
    }
    return out;
+}
+
+function filter_agg(agg) {
+    var out = {};
+    out[agg.name] = to_js(agg.filter);
+    if (agg.factoriesBuilder != null) {
+      out["aggs"] = to_js(agg.factoriesBuilder);
+    }
+    return out;
 }
 
 function filters_agg(agg) {
