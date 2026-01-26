@@ -66,6 +66,11 @@ function to_js(o) {
          return String.fromCharCode.apply('utf8', o.bytes);
       case 'org.elasticsearch.search.builder.SubSearchSourceBuilder':
          return to_js(o.queryBuilder);
+      case 'org.elasticsearch.search.aggregations.bucket.histogram.DateIntervalWrapper':
+         return {
+            'intervalType': to_js(o.intervalType.preferredName),
+            'dateHistogramInterval': to_js(o.dateHistogramInterval.expression),
+         }
       /* suggestions */
       case 'org.elasticsearch.search.suggest.SuggestBuilder':
           return suggest_builder(o);
@@ -125,6 +130,8 @@ function to_js(o) {
           return topHitsBuilder(o);
       case 'org.elasticsearch.search.aggregations.bucket.histogram.HistogramAggregationBuilder':
           return histogramBuilder(o);
+      case 'org.elasticsearch.search.aggregations.bucket.histogram.DateHistogramAggregationBuilder':
+          return dateHistogramBuilder(o);
       case 'org.elasticsearch.search.fetch.subphase.FieldAndFormat':
          return fieldAndFormat(o);
       case 'org.elasticsearch.index.query.InterceptedQueryBuilderWrapper':
@@ -528,6 +535,21 @@ function histogramBuilder(agg) {
     }
     if (agg.interval != null) {
       out["interval"] = to_js(agg.interval);
+    }
+    if (agg.factoriesBuilder != null) {
+      out["aggs"] = to_js(agg.factoriesBuilder);
+    }
+    return out;
+}
+
+function dateHistogramBuilder(agg) {
+    var out = {};
+    out[agg.name] = { "type" : toHtml(agg)};
+    if (agg.field != null) {
+      out["field"] = to_js(agg.field);
+    }
+    if (agg.dateHistogramInterval != null) {
+      out["dateHistogramInterval"] = to_js(agg.dateHistogramInterval);
     }
     if (agg.factoriesBuilder != null) {
       out["aggs"] = to_js(agg.factoriesBuilder);
