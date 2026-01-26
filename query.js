@@ -136,8 +136,22 @@ function to_js(o) {
          return fieldAndFormat(o);
       case 'org.elasticsearch.index.query.InterceptedQueryBuilderWrapper':
          return to_js(o.queryBuilder);
+      case 'org.elasticsearch.search.sort.ScriptSortBuilder':
+         return scriptSortBuilder(o);
       default:
          return 'unsupported type: ' + toHtml(o);
+   }
+}
+
+function scriptSortBuilder(o) {
+   return {
+      'order': to_js(o.order.name),
+      'type': to_js(o.type.name),
+      'script': {
+         'source': to_js(o.script.idOrCode),
+         'lang': to_js(o.script.lang),
+         'params': to_js(o.script.params)
+      }
    }
 }
 
@@ -659,7 +673,8 @@ map(heap.objects(heap.findClass('org.elasticsearch.search.builder.SearchSourceBu
         query: to_js(source.subSearchSourceBuilders),
         post_filter: to_js(source.postQueryBuilder),
         suggest: to_js(source.suggestBuilder),
-        aggs : to_js(source.aggregations)
+        aggs : to_js(source.aggregations),
+        sorts: to_js(source.sorts)
     };
     return toHtml(source) + ":\n<pre>" + JSON.stringify(request, null, 2) + "</pre>";
 });
