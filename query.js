@@ -185,13 +185,11 @@ function multi_match_query(q) {
    return {
       "prefix_length": to_js(q.prefixLength),
       "max_expansions": to_js(q.maxExpansions),
-      "fields": to_js(q.fields),
       "slop": to_js(q.slop),
       "fuzziness": to_js(q.fuzziness),
       "value": to_js(q.value),
       "analyzer": to_js(q.analyzer),
       "fields_boost": to_js(q.fieldsBoosts),
-      "query": to_js(q.query),
       "fuzzy_transpositions": to_js(q.fuzzyTranspositions),
       "auto_generate_synonyms_phrase_query": to_js(q.autoGenerateSynonymsPhraseQuery),
    }
@@ -363,18 +361,20 @@ function hash_map_to_js(map, rs) {
 }
 
 function tree_map_to_js(map) {
-    return tree_map_to_js(map.root, {});
+    var rs = {};
+    tree_map_node_to_js(map.root, rs);
+    return rs;
 }
 
-function tree_map_to_js(e, rs) {
+function tree_map_node_to_js(e, rs) {
     if (e == null) {
-        return rs
+        return;
     }
     if (e.key != null && e.value != null) {
         rs[to_js(e.key)] = to_js(e.value);
     }
-    tree_map_to_js(e.left, rs);
-    tree_map_to_js(e.right, rs)
+    tree_map_node_to_js(e.left, rs);
+    tree_map_node_to_js(e.right, rs);
 }
 
 function single_field_value_query(q) {
