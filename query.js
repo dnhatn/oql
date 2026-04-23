@@ -379,7 +379,10 @@ function tree_map_node_to_js(e, rs) {
 
 function single_field_value_query(q) {
    var clause = {};
-   clause[q.fieldName.toString()] = to_js(q.value);
+   clause[q.fieldName.toString()] = {
+      'value': to_js(q.value),
+      'case_insensitive': to_js(q.caseInsensitive),
+   };
    var query = {};
    var name = classof(q).statics['NAME'];
    query[name.toString()] = clause;
