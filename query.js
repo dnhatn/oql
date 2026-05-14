@@ -248,7 +248,7 @@ function read_char_array(bytes) {
 
 function term_binary_values(o) {
     var pos = 1;
-    if (o.valueRef == null) {
+    if (o.valueRef == null || o.valueRef.bytes == null) {
       return "_null_";
     }
     b = o.valueRef.bytes[pos];
