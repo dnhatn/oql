@@ -327,11 +327,16 @@ function array_list_to_js(es) {
 
 function hash_set_to_js(es) {
    var rs = [];
-   var node = es.map.table;
-   while (node != null && node.key != null) {
-      var k = to_js(node.key);
-      node = node.next;
-      rs.push(k);
+   var table = es.map.table;
+   if (table == null) return rs;
+   for (var i = 0; i < table.length; i++) {
+      var node = table[i];
+      while (node != null) {
+         if (node.key != null) {
+            rs.push(to_js(node.key));
+         }
+         node = node.next;
+      }
    }
    return rs;
 }
@@ -341,7 +346,7 @@ function linkedhash_set_to_js(es) {
    var node = es.map.head;
    while (node != null && node.key != null) {
       var k = to_js(node.key);
-      node = node.next;
+      node = node.after;   // was: node.next — wrong, that's the hash-bucket chain
       rs.push(k);
    }
    return rs;
