@@ -1,5 +1,14 @@
 /* find all queries specified in SearchSourceBuilder in the heap dump */
 
+/* Which SearchSourceBuilders to dump:
+ *   "all"      every SearchSourceBuilder (rewrite clones, orphans, …)
+ *   "requests" SearchRequest.source ∪ ShardSearchRequest.source
+ *   "search"   SearchRequest.source only — coordinating node for that search;
+ *              empty on a data node that is only executing shards
+ *   "shard"    ShardSearchRequest.source only — query-phase execution
+ */
+var SEARCH_SOURCE_FROM = "all";
+
 
 
 function to_js(o) {
@@ -676,7 +685,31 @@ function keyedfilter(kf) {
 }
 
 
-map(heap.objects(heap.findClass('org.elasticsearch.search.builder.SearchSourceBuilder'), true), function (source) {
+function collectRequestSources(className, ids) {
+   heap.forEachObject(function (req) {
+      if (req.source != null) {
+         ids[objectid(req.source)] = true;
+      }
+   }, className, false);
+}
+
+var includeSearch = SEARCH_SOURCE_FROM == "search" || SEARCH_SOURCE_FROM == "requests";
+var includeShard = SEARCH_SOURCE_FROM == "shard" || SEARCH_SOURCE_FROM == "requests";
+var filterToRequests = includeSearch || includeShard;
+if (SEARCH_SOURCE_FROM != "all" && filterToRequests == false) {
+   throw "SEARCH_SOURCE_FROM must be all, requests, search, or shard";
+}
+var requestSearchSourceBuilderIds = {};
+if (includeSearch) {
+   collectRequestSources('org.elasticsearch.action.search.SearchRequest', requestSearchSourceBuilderIds);
+}
+if (includeShard) {
+   collectRequestSources('org.elasticsearch.search.internal.ShardSearchRequest', requestSearchSourceBuilderIds);
+}
+
+map(filter(heap.objects(heap.findClass('org.elasticsearch.search.builder.SearchSourceBuilder'), true), function (source) {
+    return filterToRequests == false || requestSearchSourceBuilderIds[objectid(source)] == true;
+}), function (source) {
     var request = {
         query: to_js(source.subSearchSourceBuilders),
         post_filter: to_js(source.postQueryBuilder),
